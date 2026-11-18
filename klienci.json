@@ -1,0 +1,32 @@
+[
+  {
+    "company_name": "Zając Consulting",
+    "tax_id": "9221234563",
+    "contact_person": "Ewa Zając",
+    "email": "ewa@zajac-consulting.pl",
+    "city": "Zamość",
+    "lead_status": "customer"
+  },
+  {
+    "company_name": "Techno-Serwis",
+    "tax_id": "712-000-00-06",
+    "email": "marek@techno-serwis.pl",
+    "phone": null,
+    "website": "techno-serwis.pl"
+  },
+  {
+    "company_name": "Zielony Ogród",
+    "tax_id": 9462345672,
+    "contact_person": "Piotr Wiśniewski",
+    "phone": "81 444 55 66",
+    "email": "kontakt@zielonyogrod.pl",
+    "street": "ul. Kwiatowa 3/5",
+    "postal_code": "20-400",
+    "city": "Lublin",
+    "lead_status": "customer"
+  },
+  {
+    "company_name": "Firma bez NIP-u"
+  },
+  "to nie jest obiekt"
+]

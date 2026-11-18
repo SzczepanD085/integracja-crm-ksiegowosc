@@ -1,0 +1,7 @@
+company_name,tax_id,regon,contact_person,phone,email,street,postal_code,city,lead_status,notes
+Kwadrat Sp. z o.o.,5260001246,,Anna Nowak,+48 501 222 333,biuro@kwadrat.pl,ul. Lipowa 12A,20-001,Lublin,customer,Stały klient
+Zielony Ogród,9462345672,,Piotr Wiśniewski,81 444 55 66,kontakt@zielonyogrod.pl,ul. Kwiatowa 3/5,20-400,Lublin,lead,
+Mega Bud,9462345671,,Jan Kowalski,600100200,jan@megabud.pl,ul. Długa 1,21-100,Lubartów,customer,
+,9221234563,,Ewa Zając,,ewa@firma.pl,ul. Polna 8,22-400,Zamość,lead,
+Techno-Serwis,7120000006,,Marek Lis,500600700,marek.techno-serwis.pl,ul. Krótka 2,24-100,Puławy,customer,
+Kwadrat Sp. z o.o.,5260001246,,Anna Nowak,+48 501 222 333,anna@kwadrat.pl,ul. Lipowa 12A,20-001,Lublin,customer,Nowy mail
