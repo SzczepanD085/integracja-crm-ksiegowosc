@@ -145,8 +145,6 @@ def validate_row(row):
         nip = clean_nip(row["tax_id"])
     if not nip:
         errors.append("brak NIP-u")
-    elif not is_valid_nip(nip):
-        errors.append(f"nieprawidłowy NIP: {row['tax_id']!r}")
 
     email = row["email"].strip()
     if email and not EMAIL_RE.fullmatch(email):
