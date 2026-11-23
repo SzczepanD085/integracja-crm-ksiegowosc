@@ -67,3 +67,11 @@ Content-Type: application/json
   "kwota_gr": -5,
   "termin_platnosci": "31.12.2026"
 }
+
+### Konflikt: księgowość zmienia to samo pole inaczej
+PATCH http://127.0.0.1:5002/kontrahenci/9462345672
+Content-Type: application/json
+
+{
+  "miasto": "Zamość"
+}

@@ -12,9 +12,9 @@ POST http://127.0.0.1:5001/customers
 Content-Type: application/json
 
 {
-  "company_name": "Nowa Firma",
-  "tax_id": "1234563218",
-  "city": "Puławy"
+  "company_name": "Test Serwis",
+  "tax_id": "7120000012",
+  "city": "Kraśnik"
 }
 
 ### Ten sam NIP drugi raz (409)
@@ -34,4 +34,72 @@ Content-Type: application/json
   "company_name": "",
   "tax_id": "123",
   "email": "zly-mail"
+}
+
+### PATCH: zmiana miasta (200, reszta bez zmian)
+PATCH http://127.0.0.1:5001/customers/1234563218
+Content-Type: application/json
+
+{
+  "city": "Lublin",
+  "phone": "500 600 700"
+}
+
+### PATCH: pusta nazwa (400)
+PATCH http://127.0.0.1:5001/customers/1234563218
+Content-Type: application/json
+
+{
+  "company_name": ""
+}
+
+### PATCH: literówka w nazwie pola (400)
+PATCH http://127.0.0.1:5001/customers/1234563218
+Content-Type: application/json
+
+{
+  "emial": "nowy@nowafirma.pl"
+}
+
+### PATCH: próba zmiany należności (400)
+PATCH http://127.0.0.1:5001/customers/1234563218
+Content-Type: application/json
+
+{
+  "balance_due": 0
+}
+
+### PATCH: próba zmiany NIP-u (400)
+PATCH http://127.0.0.1:5001/customers/1234563218
+Content-Type: application/json
+
+{
+  "tax_id": "5260001246"
+}
+
+### PATCH: nieistniejący klient (404)
+PATCH http://127.0.0.1:5001/customers/9221234570
+Content-Type: application/json
+
+{
+  "city": "Lublin"
+}
+
+### Czy Test Serwis istnieje?
+GET http://127.0.0.1:5001/customers/7120000012
+
+### Konflikt: CRM zmienia miasto Zielonego Ogrodu
+PATCH http://127.0.0.1:5001/customers/9462345672
+Content-Type: application/json
+
+{
+  "city": "Chełm"
+}
+
+### Rozwiązanie konfliktu: CRM przyjmuje wartość z księgowości
+PATCH http://127.0.0.1:5001/customers/9462345672
+Content-Type: application/json
+
+{
+  "city": "Zamość"
 }
