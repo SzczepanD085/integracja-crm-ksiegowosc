@@ -1,0 +1,69 @@
+### Lista kontrahentów
+GET http://127.0.0.1:5002/kontrahenci
+
+### Jeden kontrahent (200)
+GET http://127.0.0.1:5002/kontrahenci/5260001246
+
+### Nowy kontrahent (201, tylko za pierwszym razem)
+POST http://127.0.0.1:5002/kontrahenci
+Content-Type: application/json
+
+{
+  "nazwa": "Zając Consulting",
+  "nip": "9221234563",
+  "miasto": "Zamość"
+}
+
+### Zmiana adresu (200)
+PATCH http://127.0.0.1:5002/kontrahenci/9221234563
+Content-Type: application/json
+
+{
+  "ulica": "ul. Rynek Wielki 1",
+  "kod_pocztowy": "22-400"
+}
+
+### Pole z CRM, którego księgowość nie zna (400)
+PATCH http://127.0.0.1:5002/kontrahenci/9221234563
+Content-Type: application/json
+
+{
+  "lead_status": "customer"
+}
+
+### Należność Kwadratu: 450 zł, przeterminowana
+GET http://127.0.0.1:5002/kontrahenci/5260001246/naleznosc
+
+### Należność Zielonego Ogrodu: 899 zł, w terminie
+GET http://127.0.0.1:5002/kontrahenci/9462345672/naleznosc
+
+### Należność Zająca: brak faktur, 0
+GET http://127.0.0.1:5002/kontrahenci/9221234563/naleznosc
+
+### Faktury Kwadratu
+GET http://127.0.0.1:5002/kontrahenci/5260001246/faktury
+
+### Opłacenie przeterminowanej faktury Kwadratu
+POST http://127.0.0.1:5002/faktury/FV/2026/10/002/oplac
+
+### Nowa faktura dla Zająca (201)
+POST http://127.0.0.1:5002/faktury
+Content-Type: application/json
+
+{
+  "nr_faktury": "FV/2026/11/002",
+  "nip": "9221234563",
+  "kwota_gr": 25000,
+  "termin_platnosci": "2026-12-31"
+}
+
+### Błędna faktura (400)
+POST http://127.0.0.1:5002/faktury
+Content-Type: application/json
+
+{
+  "nr_faktury": "",
+  "nip": "1111111111",
+  "kwota_gr": -5,
+  "termin_platnosci": "31.12.2026"
+}
