@@ -1,5 +1,6 @@
 crm.db
 ksiegowosc.db
-sync.py
-__pycahche__/
+sync.db
+.env
+__pycache__/
 .venv/

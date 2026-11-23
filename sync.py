@@ -1,9 +1,11 @@
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).parent
 SYNC_DB = BASE_DIR / "sync.db"
@@ -11,6 +13,12 @@ SYNC_DB = BASE_DIR / "sync.db"
 CRM_URL = "http://127.0.0.1:5001"
 KSIEG_URL = "http://127.0.0.1:5002"
 TIMEOUT = 5
+
+load_dotenv(BASE_DIR / ".env")
+CRM_TOKEN = os.environ.get("CRM_TOKEN")
+KSIEG_TOKEN = os.environ.get("KSIEG_TOKEN")
+if not CRM_TOKEN or not KSIEG_TOKEN:
+    raise SystemExit("Brak CRM_TOKEN lub KSIEG_TOKEN w pliku .env.")
 
 # pole w CRM -> pole w księgowości (tylko pola wspólne)
 MAPA = {
@@ -24,6 +32,14 @@ MAPA = {
     "city": "miasto",
 }
 WSPOLNE = [p for p in MAPA if p != "tax_id"]
+
+
+# ---------- połączenia z systemami ----------
+
+def sesja(token):
+    s = requests.Session()
+    s.headers["Authorization"] = f"Bearer {token}"
+    return s
 
 
 # ---------- pamięć synchronizacji ----------
@@ -80,34 +96,31 @@ def porownaj(a, b, baza):
         va, vb = a[p], b[p]
         vbaza = baza.get(p) if baza else None
 
-        if va == vb:                              # zgodne, nic do roboty
+        if va == vb:
             wynik[p] = va
-        elif baza is None and va is None:         # pierwszy sync: uzupełniamy braki
+        elif baza is None and va is None:
             do_crm[p] = vb
             wynik[p] = vb
         elif baza is None and vb is None:
             do_ksieg[p] = va
             wynik[p] = va
-        elif baza is not None and va == vbaza:    # zmieniła tylko księgowość
+        elif baza is not None and va == vbaza:
             do_crm[p] = vb
             wynik[p] = vb
-        elif baza is not None and vb == vbaza:    # zmienił tylko CRM
+        elif baza is not None and vb == vbaza:
             do_ksieg[p] = va
             wynik[p] = va
-        else:                                     # zmienili oboje: konflikt
+        else:
             konflikty.append(p)
             wynik[p] = vbaza
 
     return do_crm, do_ksieg, konflikty, wynik
 
 
-# ---------- synchronizacja ----------
+# ---------- synchronizacja danych firm (dwukierunkowa) ----------
 
-def synchronizuj():
-    conn = polacz_sync()
-    klienci = requests.get(f"{CRM_URL}/customers", timeout=TIMEOUT).json()
-    print(f"Synchronizacja: {len(klienci)} klientów w CRM")
-
+def synchronizuj_dane(crm, ksieg, conn, klienci):
+    print("Dane firm (CRM ↔ księgowość):")
     for klient in klienci:
         nip = klient["tax_id"]
         if klient["lead_status"] != "customer":
@@ -115,12 +128,12 @@ def synchronizuj():
             continue
 
         a = z_crm(klient)
-        r = requests.get(f"{KSIEG_URL}/kontrahenci/{nip}", timeout=TIMEOUT)
+        r = ksieg.get(f"{KSIEG_URL}/kontrahenci/{nip}", timeout=TIMEOUT)
 
         if r.status_code == 404:
             nowy = do_ksiegowosci(a)
             nowy["nip"] = nip
-            r = requests.post(f"{KSIEG_URL}/kontrahenci", json=nowy, timeout=TIMEOUT)
+            r = ksieg.post(f"{KSIEG_URL}/kontrahenci", json=nowy, timeout=TIMEOUT)
             if r.status_code == 201:
                 zapisz_migawke(conn, nip, a)
                 print(f"  {nip}: UTWORZONO w księgowości")
@@ -138,8 +151,8 @@ def synchronizuj():
         ok = True
 
         if do_ksieg:
-            r = requests.patch(f"{KSIEG_URL}/kontrahenci/{nip}",
-                               json=do_ksiegowosci(do_ksieg), timeout=TIMEOUT)
+            r = ksieg.patch(f"{KSIEG_URL}/kontrahenci/{nip}",
+                            json=do_ksiegowosci(do_ksieg), timeout=TIMEOUT)
             if r.status_code == 200:
                 print(f"  {nip}: CRM → księgowość: {', '.join(do_ksieg)}")
             else:
@@ -147,7 +160,7 @@ def synchronizuj():
                 print(f"  {nip}: BŁĄD {r.status_code} przy zapisie do księgowości: {r.text}")
 
         if do_crm:
-            r = requests.patch(f"{CRM_URL}/customers/{nip}", json=do_crm, timeout=TIMEOUT)
+            r = crm.patch(f"{CRM_URL}/customers/{nip}", json=do_crm, timeout=TIMEOUT)
             if r.status_code == 200:
                 print(f"  {nip}: księgowość → CRM: {', '.join(do_crm)}")
             else:
@@ -163,7 +176,53 @@ def synchronizuj():
         if ok:
             zapisz_migawke(conn, nip, wynik)
 
-    conn.close()
+
+# ---------- synchronizacja należności (księgowość → CRM) ----------
+
+def synchronizuj_naleznosci(crm, ksieg, klienci):
+    print("Należności (księgowość → CRM):")
+    for klient in klienci:
+        nip = klient["tax_id"]
+        if klient["lead_status"] != "customer":
+            continue
+
+        r = ksieg.get(f"{KSIEG_URL}/kontrahenci/{nip}/naleznosc", timeout=TIMEOUT)
+        if r.status_code == 404:
+            print(f"  {nip}: jeszcze nie ma w księgowości")
+            continue
+        if r.status_code != 200:
+            print(f"  {nip}: BŁĄD {r.status_code} przy odczycie należności")
+            continue
+
+        n = r.json()
+        if (klient["balance_due"] == n["naleznosc_gr"]
+                and klient["payment_status"] == n["status_platnosci"]):
+            print(f"  {nip}: bez zmian ({n['naleznosc_gr'] / 100:.2f} zł, {n['status_platnosci']})")
+            continue
+
+        r = crm.put(f"{CRM_URL}/integration/customers/{nip}/payment",
+                    json={"balance_due": n["naleznosc_gr"],
+                          "payment_status": n["status_platnosci"]},
+                    timeout=TIMEOUT)
+        if r.status_code == 200:
+            print(f"  {nip}: ZAKTUALIZOWANO: {n['naleznosc_gr'] / 100:.2f} zł, {n['status_platnosci']}")
+        else:
+            print(f"  {nip}: BŁĄD {r.status_code} przy zapisie należności: {r.text}")
+
+
+# ---------- start ----------
+
+def synchronizuj():
+    crm = sesja(CRM_TOKEN)
+    ksieg = sesja(KSIEG_TOKEN)
+    conn = polacz_sync()
+    try:
+        klienci = crm.get(f"{CRM_URL}/customers", timeout=TIMEOUT).json()
+        synchronizuj_dane(crm, ksieg, conn, klienci)
+        klienci = crm.get(f"{CRM_URL}/customers", timeout=TIMEOUT).json()
+        synchronizuj_naleznosci(crm, ksieg, klienci)
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

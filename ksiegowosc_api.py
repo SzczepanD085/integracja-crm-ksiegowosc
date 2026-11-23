@@ -2,11 +2,18 @@ import sqlite3
 from pathlib import Path
 from datetime import date
 from flask import Flask, g, jsonify, request
+import hmac
+import os
+from dotenv import load_dotenv
 
 from import_crm import EMAIL_RE, clean_nip, is_valid_nip, opt, to_text
 
 BASE_DIR = Path(__file__).parent
 DB_PATH = BASE_DIR / "ksiegowosc.db"
+load_dotenv(BASE_DIR / ".env")
+KSIEG_TOKEN = os.environ.get("KSIEG_TOKEN")
+if not KSIEG_TOKEN:
+    raise SystemExit("Brak KSIEG_TOKEN w pliku .env, serwer nie wystartuje.")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS kontrahenci (
@@ -65,7 +72,12 @@ def create_tables(conn):
 
 app = Flask(__name__)
 app.json.ensure_ascii = False
-
+@app.before_request
+def sprawdz_token():
+    naglowek = request.headers.get("Authorization", "")
+    oczekiwany = f"Bearer {KSIEG_TOKEN}"
+    if not hmac.compare_digest(naglowek.encode(), oczekiwany.encode()):
+        return jsonify(error="brak lub nieprawidłowy token"), 401, {"WWW-Authenticate": "Bearer"}
 
 def get_db():
     if "db" not in g:

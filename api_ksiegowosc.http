@@ -1,3 +1,17 @@
+@token = {{$dotenv KSIEG_TOKEN}}
+
+### Przeterminowana faktura dla Kwadratu
+POST http://127.0.0.1:5002/faktury
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nr_faktury": "FV/2026/11/003",
+  "nip": "5260001246",
+  "kwota_gr": 30000,
+  "termin_platnosci": "2026-11-10"
+}
+
 ### Lista kontrahentów
 GET http://127.0.0.1:5002/kontrahenci
 

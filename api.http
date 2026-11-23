@@ -1,3 +1,17 @@
+@token = {{$dotenv CRM_TOKEN}}
+
+### Bez tokena (401)
+GET http://127.0.0.1:5001/customers
+
+### Z tokenem (200)
+GET http://127.0.0.1:5001/customers
+Authorization: Bearer {{token}}
+
+### Zły token (401)
+GET http://127.0.0.1:5001/customers
+Authorization: Bearer zgaduje123
+
+
 ### Lista klientów
 GET http://127.0.0.1:5001/customers
 
