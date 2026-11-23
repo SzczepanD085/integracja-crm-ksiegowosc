@@ -4,3 +4,4 @@ sync.db
 .env
 __pycache__/
 .venv/
+sync.py

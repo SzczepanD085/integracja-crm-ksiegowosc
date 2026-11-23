@@ -117,3 +117,12 @@ Content-Type: application/json
 {
   "city": "Zamość"
 }
+
+### Zmiana telefonu Zająca w CRM
+PATCH http://127.0.0.1:5001/customers/9221234563
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "phone": "84 111 22 33"
+}
